@@ -1,0 +1,16 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.env
+.venv
+node_modules
+.DS_Store
+.pytest_cache
+.mypy_cache
+*.log
+dist
+build
+.vercel
