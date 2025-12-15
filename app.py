@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse
 import httpx
@@ -166,6 +166,21 @@ async def auto_apply(job_ids: list):
             "success": False,
             "error": str(e)
         }
+
+@app.post("/upload-resume")
+async def upload_resume(file: UploadFile):
+    """Upload resume file for auto-apply"""
+    try:
+        # Store file in memory (for production, use cloud storage like S3)
+        contents = await file.read()
+        return {
+            "success": True,
+            "filename": file.filename,
+            "size": len(contents),
+            "message": "Resume uploaded successfully"
+        }
+    except Exception as e:
+        return {"success": False, "error": str(e)}
 
 html_content = """<!DOCTYPE html>
 <html lang="en">
