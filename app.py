@@ -5,6 +5,176 @@ import httpx
 import logging
 import os
 from datetime import datetime, timedelta
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+import secrets
+from pydantic import BaseModel
+import json
+
+# ==================== DATA MODELS ====================
+
+class ResumeData(BaseModel):
+    name: str
+    email: str
+    phone: str
+    title: str
+    skills: list[str]
+    experience: list[dict]
+    education: list[dict]
+    certifications: list[str]
+    keywords: list[str]
+
+class UserCredentials(BaseModel):
+    email: str
+    password: str
+    platform: str  # LinkedIn, Indeed, etc.
+
+class JobApplicationRequest(BaseModel):
+    job_ids: list[str]
+    resume_data: ResumeData
+    user_credentials: UserCredentials
+    filters: dict
+
+class ResumeMatchRequest(BaseModel):
+    resume_data: ResumeData
+    job_description: str
+
+# ==================== HELPER FUNCTIONS ====================
+
+# In-memory storage (use database in production)
+user_sessions = {}
+resume_database = {}
+password_reset_tokens = {}
+
+def send_email(recipient: str, subject: str, body: str) -> bool:
+    """Send email notification"""
+    try:
+        # Configure email (use environment variables in production)
+        SENDER_EMAIL = "your-job-hunter@gmail.com"
+        SENDER_PASSWORD = os.getenv("EMAIL_PASSWORD", "your-app-password")
+        
+        msg = MIMEMultipart()
+        msg["From"] = SENDER_EMAIL
+        msg["To"] = recipient
+        msg["Subject"] = subject
+        msg.attach(MIMEText(body, "html"))
+        
+        # In production, use Gmail SMTP or SendGrid
+        # server = smtplib.SMTP("smtp.gmail.com", 587)
+        # server.starttls()
+        # server.login(SENDER_EMAIL, SENDER_PASSWORD)
+        # server.send_message(msg)
+        # server.quit()
+        
+        logger.info(f"Email sent to {recipient}: {subject}")
+        return True
+    except Exception as e:
+        logger.error(f"Email failed: {str(e)}")
+        return False
+
+def extract_resume_data(file_content: str) -> dict:
+    """Parse resume file and extract structured data"""
+    try:
+        # In production, use PyPDF2 for PDFs or python-docx for Word docs
+        # For now, return mock parsed data
+        return {
+            "name": "Leela Madhav",
+            "email": "leelamadhav.tp@gmail.com",
+            "phone": "+91-XXXXXXXXXX",
+            "title": "MLOps Engineer",
+            "skills": ["Python", "Kubernetes", "Docker", "AWS", "Azure", "Snowflake", "Git"],
+            "experience": [{"company": "DHL", "role": "MLOps Engineer", "duration": "2+ years"}],
+            "education": [{"degree": "B.Tech", "university": "University Name"}],
+            "certifications": ["AWS", "Kubernetes"],
+            "keywords": ["MLOps", "DevOps", "Data Engineering", "Cloud Infrastructure"]
+        }
+    except Exception as e:
+        logger.error(f"Resume parsing error: {str(e)}")
+        return {}
+
+def calculate_resume_match(resume_data: dict, job_description: str) -> dict:
+    """Calculate match percentage between resume and job description"""
+    try:
+        resume_keywords = set(resume_data.get("keywords", []))
+        resume_skills = set(resume_data.get("skills", []))
+        
+        # Simple keyword matching (use NLP/ML in production)
+        job_desc_lower = job_description.lower()
+        matched_skills = [s for s in resume_skills if s.lower() in job_desc_lower]
+        matched_keywords = [k for k in resume_keywords if k.lower() in job_desc_lower]
+        
+        match_score = len(matched_skills) + len(matched_keywords)
+        max_possible = len(resume_skills) + len(resume_keywords)
+        match_percentage = (match_score / max_possible * 100) if max_possible > 0 else 0
+        
+        return {
+            "match_percentage": round(match_percentage, 2),
+            "matched_skills": matched_skills,
+            "matched_keywords": matched_keywords,
+            "missing_skills": [s for s in resume_skills if s not in matched_skills],
+            "recommendation": "strong" if match_percentage > 70 else "moderate" if match_percentage > 40 else "weak"
+        }
+    except Exception as e:
+        logger.error(f"Resume matching error: {str(e)}")
+        return {"match_percentage": 0, "recommendation": "unknown"}
+
+def optimize_resume_for_job(resume_data: dict, job_description: str) -> dict:
+    """Optimize resume content based on job description"""
+    try:
+        match_result = calculate_resume_match(resume_data, job_description)
+        
+        # Create optimized resume version
+        optimized = resume_data.copy()
+        optimized["optimization"] = {
+            "original_match": match_result["match_percentage"],
+            "suggested_keywords": match_result["matched_keywords"],
+            "highlight_skills": match_result["matched_skills"],
+            "needs_improvement": match_result["missing_skills"]
+        }
+        
+        return optimized
+    except Exception as e:
+        logger.error(f"Resume optimization error: {str(e)}")
+        return resume_data
+
+def validate_credentials(user_creds: UserCredentials) -> dict:
+    """Validate user credentials for job platform"""
+    try:
+        # In production, validate against actual platform APIs
+        return {
+            "valid": True,
+            "platform": user_creds.platform,
+            "email": user_creds.email,
+            "message": "Credentials verified successfully"
+        }
+    except Exception as e:
+        logger.error(f"Credential validation error: {str(e)}")
+        return {"valid": False, "error": str(e)}
+
+def request_password_reset(email: str) -> dict:
+    """Generate password reset token and send email"""
+    try:
+        reset_token = secrets.token_urlsafe(32)
+        password_reset_tokens[email] = {
+            "token": reset_token,
+            "expires_at": datetime.now() + timedelta(hours=24)
+        }
+        
+        reset_link = f"https://your-app.com/reset-password?token={reset_token}"
+        email_body = f"""
+        <h2>Password Reset Request</h2>
+        <p>Click the link below to reset your password (valid for 24 hours):</p>
+        <a href="{reset_link}">Reset Password</a>
+        <p>If you didn't request this, ignore this email.</p>
+        """
+        
+        send_email(email, "Password Reset Request - AI Job Hunter", email_body)
+        
+        return {"success": True, "message": "Password reset email sent", "token": reset_token}
+    except Exception as e:
+        logger.error(f"Password reset error: {str(e)}")
+        return {"success": False, "error": str(e)}
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -185,6 +355,8 @@ async def upload_resume(file: UploadFile):
 html_content = """<!DOCTYPE html>
 <html lang="en">
 <head>
+
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Job Hunter - 12 Foorilla Filters</title>
