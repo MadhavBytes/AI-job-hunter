@@ -1,0 +1,39 @@
+# Backend
+fastapi==0.109.0
+uvicorn[standard]==0.27.0
+python-multipart==0.0.6
+pydantic==2.5.3
+python-dotenv==1.0.0
+
+# Web Automation & Scraping
+playwright==1.40.0
+selenium==4.15.2
+beautifulsoup4==4.12.2
+requests==2.31.0
+
+# Resume Parsing
+PyPDF2==3.0.1
+python-docx==0.8.11
+pdf2image==1.16.3
+Pillow==10.1.0
+
+# LLM & AI
+ollama==0.1.0
+llama-cpp-python==0.2.16
+
+# Database
+sqlalchemy==2.0.23
+
+# Task Scheduling
+APScheduler==3.10.4
+
+# Data Processing
+numpy==1.26.3
+pandas==2.1.4
+
+# Utilities
+pydantic-settings==2.1.0
+aiohttp==3.9.1
+
+# Frontend
+# (Node.js packages in package.json)
