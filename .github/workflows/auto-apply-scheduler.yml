@@ -1,0 +1,60 @@
+name: Scheduled Auto-Apply Job Hunting
+
+on:
+  schedule:
+    - cron: '0 9 * * 1-5'  # Run at 9 AM on weekdays
+  workflow_dispatch:
+
+jobs:
+  auto_apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install -r backend/requirements.txt
+      
+      - name: Run auto-apply job search
+        run: |
+          python -c "
+          import asyncio
+          from backend.services.auto_apply_service import AutoApplyService
+          from backend.services.resume_adapter import ResumeAdapter
+          
+          async def run_auto_apply():
+              service = AutoApplyService()
+              adapter = ResumeAdapter()
+              await service.initialize_browser()
+              
+              # Search for jobs and auto-apply
+              print('Starting scheduled auto-apply job search...')
+              await service.batch_apply(
+                  min_match_score=60,
+                  max_applications_per_run=5
+              )
+              await service.close_browser()
+              print('Auto-apply job search completed')
+          
+          asyncio.run(run_auto_apply())
+          "
+        env:
+          FOORILLA_API_KEY: ${{ secrets.FOORILLA_API_KEY }}
+          OLLAMA_BASE_URL: ${{ secrets.OLLAMA_BASE_URL }}
+          OLLAMA_MODEL: llama2
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      
+      - name: Send notification
+        if: always()
+        run: echo "Scheduled auto-apply job hunt completed"
+      
+      - name: Notify results via email
+        if: failure()
+        run: |
+          echo "Auto-apply job hunt encountered an error"
+          exit 1
