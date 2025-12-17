@@ -66,4 +66,3 @@ volumes:
 
 networks:
   ai-hunter:
-    driver: bridge

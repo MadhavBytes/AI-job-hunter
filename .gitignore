@@ -24,6 +24,13 @@ wheels/
 venv/
 env/
 ENV/
+.venv/
+
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+.npm
 
 # IDE
 .vscode/
@@ -61,3 +68,6 @@ resumes/uploads/*
 # Application data
 data/
 logs/
+
+# OS
+Thumbs.db
