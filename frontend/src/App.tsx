@@ -1,89 +1,123 @@
-import { useState, useEffect } from 'react';
-import { useAppStore } from './services/store';
-import './styles/globals.css';
+import { useState, useEffect } from 'react'
+import './App.css'
 
-const App = () => {
-  const [loading, setLoading] = useState(true);
-  const resume = useAppStore((state) => state.resume);
-  const setResume = useAppStore((state) => state.setResume);
+interface Job {
+  id: string
+  title: string
+  company: string
+  location: string
+  salary?: string
+  type: string
+  description: string
+  posted: string
+}
+
+function App() {
+  const [jobs, setJobs] = useState<Job[]>([])
+  const [filteredJobs, setFilteredJobs] = useState<Job[]>([])
+  const [resume, setResume] = useState<File | null>(null)
+  const [appliedJobs, setAppliedJobs] = useState<Set<string>>(new Set())
+  const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [filters, setFilters] = useState({ jobType: '', location: '', keyword: '' })
 
   useEffect(() => {
-    setLoading(false);
-  }, []);
+    const sampleJobs: Job[] = [
+      { id: '1', title: 'Senior React Developer', company: 'Tech Corp', location: 'San Francisco', salary: '$150K-$200K', type: 'Full-time', description: 'Experienced React dev needed', posted: '2d' },
+      { id: '2', title: 'Full Stack Engineer', company: 'StartupXYZ', location: 'New York', salary: '$120K-$160K', type: 'Full-time', description: 'Build web apps', posted: '1d' },
+      { id: '3', title: 'Data Scientist', company: 'DataCorp', location: 'Remote', salary: '$130K-$170K', type: 'Remote', description: 'ML and analytics', posted: '3d' },
+      { id: '4', title: 'DevOps Engineer', company: 'CloudTech', location: 'Seattle', salary: '$140K-$180K', type: 'Full-time', description: 'Infrastructure work', posted: '1w' }
+    ]
+    setJobs(sampleJobs)
+    setFilteredJobs(sampleJobs)
+  }, [])
+
+  const handleResumeUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) setResume(e.target.files[0])
+  }
+
+  const handleFilterChange = (field: string, value: string) => {
+    const newFilters = { ...filters, [field]: value }
+    setFilters(newFilters)
+    applyFilters(newFilters)
+  }
+
+  const applyFilters = (current: typeof filters) => {
+    let filtered = jobs.filter(job => {
+      if (current.jobType && job.type !== current.jobType) return false
+      if (current.location && !job.location.toLowerCase().includes(current.location.toLowerCase())) return false
+      if (current.keyword && !job.title.toLowerCase().includes(current.keyword.toLowerCase())) return false
+      return true
+    })
+    setFilteredJobs(filtered)
+  }
+
+  const handleApply = (job: Job) => {
+    if (!resume) { alert('Please upload your resume'); return }
+    setAppliedJobs(prev => new Set(prev).add(job.id))
+    alert(`Applied to ${job.title}`)
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900">
-      {/* Header */}
-      <header className="sticky top-0 z-50 bg-slate-900 border-b border-slate-700 shadow-lg">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
-              🤖 AI Job Hunter
-            </div>
-          </div>
-          {resume && (
-            <div className="flex items-center gap-2 px-3 py-1 bg-green-900 bg-opacity-50 rounded-full">
-              <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-              <span className="text-sm text-green-300">Resume Loaded</span>
-            </div>
-          )}
+    <div className="app">
+      <aside className="sidebar">
+        <div className="sidebar-header"><h1>AI Job Hunter</h1></div>
+        <div className="resume-section">
+          <h3>Resume</h3>
+          <label className="resume-upload">
+            <input type="file" accept=".pdf,.doc,.docx" onChange={handleResumeUpload} style={{display:'none'}} />
+            <span>{resume ? resume.name : 'Upload Resume'}</span>
+          </label>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {!resume ? (
-          <div className="bg-gradient-to-r from-blue-600 to-cyan-600 rounded-lg p-8 text-white text-center">
-            <h2 className="text-3xl font-bold mb-4">Welcome to AI Job Hunter</h2>
-            <p className="text-lg mb-6 opacity-90">Upload your resume to get started with smart job matching and auto-apply</p>
-            <div className="bg-white bg-opacity-10 backdrop-blur rounded-lg p-6 border border-white border-opacity-20">
-              <p className="text-base">Powered by AI Resume Parsing &bull; Foorilla Job API &bull; Automated Applications</p>
-            </div>
+        <div className="filters-section">
+          <h3>Filters</h3>
+          <div className="filter-group">
+            <label>Job Type</label>
+            <select value={filters.jobType} onChange={(e) => handleFilterChange('jobType', e.target.value)}>
+              <option value="">All Types</option>
+              <option value="Full-time">Full-time</option>
+              <option value="Remote">Remote</option>
+              <option value="Contract">Contract</option>
+            </select>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Sidebar Filters */}
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 h-fit">
-              <h3 className="text-lg font-semibold text-white mb-4">Filters</h3>
-              <div className="space-y-4">
-                <div>
-                  <label className="text-sm text-gray-300">Job Title</label>
-                  <input type="text" placeholder="e.g., Python Developer" className="w-full mt-2 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-gray-400" />
-                </div>
-                <div>
-                  <label className="text-sm text-gray-300">Location</label>
-                  <input type="text" placeholder="e.g., Remote" className="w-full mt-2 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-white placeholder-gray-400" />
-                </div>
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded transition">
-                  Search Jobs
-                </button>
-              </div>
-            </div>
-
-            {/* Main Content Area */}
-            <div className="lg:col-span-2">
-              <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 text-center text-gray-400">
-                <p className="text-lg">Jobs will appear here once you search</p>
-              </div>
-            </div>
-
-            {/* Right Sidebar */}
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 h-fit">
-              <h3 className="text-lg font-semibold text-white mb-4">Resume Stats</h3>
-              <div className="space-y-3">
-                <div className="text-sm text-gray-300">
-                  <span className="font-semibold text-blue-400">Skills:</span> {resume?.extracted_data?.skills?.length || 0}
-                </div>
-                <div className="text-sm text-gray-300">
-                  <span className="font-semibold text-blue-400">Experience:</span> {resume?.extracted_data?.experience?.length || 0} roles
-                </div>
-              </div>
-            </div>
+          <div className="filter-group">
+            <label>Location</label>
+            <input type="text" placeholder="City" value={filters.location} onChange={(e) => handleFilterChange('location', e.target.value)} />
           </div>
-        )}
+          <div className="filter-group">
+            <label>Keyword</label>
+            <input type="text" placeholder="Job title" value={filters.keyword} onChange={(e) => handleFilterChange('keyword', e.target.value)} />
+          </div>
+        </div>
+      </aside>
+      <main className="main-content">
+        <div className="content-header"><h2>Jobs</h2><p>{filteredJobs.length} found</p></div>
+        <div className="jobs-container">
+          {filteredJobs.map(job => (
+            <div key={job.id} className={`job-card ${appliedJobs.has(job.id) ? 'applied' : ''}`} onClick={() => setSelectedJob(job)}>
+              <h3>{job.title}</h3>
+              <p className="company">{job.company}</p>
+              <p>📍 {job.location} | {job.type}</p>
+              <p>{job.salary}</p>
+              <button onClick={(e) => { e.stopPropagation(); handleApply(job) }} disabled={appliedJobs.has(job.id)}>
+                {appliedJobs.has(job.id) ? 'Applied' : 'Apply'}
+              </button>
+            </div>
+          ))}
+        </div>
       </main>
+      {selectedJob && <div className="modal-overlay" onClick={() => setSelectedJob(null)}>
+        <div className="modal" onClick={(e) => e.stopPropagation()}>
+          <h2>{selectedJob.title}</h2>
+          <p>{selectedJob.company}</p>
+          <p>{selectedJob.location} | {selectedJob.salary}</p>
+          <p>{selectedJob.description}</p>
+          <button onClick={() => { handleApply(selectedJob); setSelectedJob(null) }} disabled={appliedJobs.has(selectedJob.id)}>
+            {appliedJobs.has(selectedJob.id) ? 'Applied' : 'Apply'}
+          </button>
+        </div>
+      </div>}
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App
